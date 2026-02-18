@@ -1,0 +1,366 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MKBookhouse Print</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    :root {
+      --ink: #101418;
+      --muted: #5b6270;
+      --paper: #ffffff;
+      --accent: #1b6a4f;
+      --accent-2: #f2b34c;
+      --border: #d7dde4;
+      --shadow: 0 8px 24px rgba(16, 20, 24, 0.12);
+      --radius: 12px;
+    }
+
+    /* ===== Screen preview ===== */
+    body {
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      margin: 16px;
+      color: var(--ink);
+      background: radial-gradient(circle at 10% 10%, #eef3f7, #f9fafb 55%, #f4f6f8);
+    }
+    .toolbar { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; flex-wrap: wrap; }
+    button {
+      padding: 9px 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: linear-gradient(180deg, #ffffff, #f2f5f8);
+      box-shadow: 0 4px 10px rgba(16, 20, 24, 0.08);
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 16px rgba(16, 20, 24, 0.12); }
+    textarea { width: 100%; height: 120px; }
+
+    /* ===== Form ===== */
+    .form {
+      max-width: 560px;
+      margin: 0 0 16px 0;
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .form h3 { margin: 0 0 10px 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .full { grid-column: 1 / -1; }
+    .form label { font-size: 13px; display: block; margin-bottom: 4px; }
+    .form input, .form textarea {
+      width: 100%;
+      padding: 7px;
+      box-sizing: border-box;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    fieldset { margin-top: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; }
+    legend { font-size: 13px; font-weight: 700; padding: 0 6px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    /* ===== Page container ===== */
+    #pages {
+      display: flex;
+      flex-direction: column;
+      gap: 12mm;
+    }
+
+    .page {
+      width: 210mm;                /* A4 width */
+      height: 297mm;               /* A4 height */
+      margin: 0 auto;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      padding: 10mm;
+      box-sizing: border-box;
+      box-shadow: var(--shadow);
+      border-radius: 10px;
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; }
+
+    .page-content {
+      height: 100%;
+      display: flex;
+      gap: 8mm;
+    }
+
+    .column {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6mm;
+    }
+
+    /* One order “card” */
+    .card {
+      break-inside: avoid;          /* modern */
+      page-break-inside: avoid;     /* legacy */
+      border: 1px solid #000;
+      padding: 8px;
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.3;
+      background: #fffefb;
+    }
+
+    .row { margin: 2px 0; }
+    .label { display: inline-block; min-width: 70px; }
+    .strong { font-weight: 700; }
+    .books { margin-top: 6px; }
+    .books ol { margin: 6px 0 0 18px; padding: 0; }
+    .books li { margin: 2px 0; }
+
+    /* ===== Print rules ===== */
+    @page { size: A4 portrait; margin: 10mm; }
+    @media print {
+      body { margin: 0; }
+      .toolbar, .form { display: none; }
+      #pages { gap: 0; }
+      .page { border: none; margin: 0; padding: 10mm; box-shadow: none; border-radius: 0; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="toolbar">
+    <button onclick="window.print()">Print / Save PDF</button>
+    <button onclick="addSample()">Add Sample Card</button>
+    <button onclick="clearAll()">Clear All</button>
+  </div>
+
+  <div class="form">
+    <h3>Add Order</h3>
+
+    <div class="grid">
+      <div>
+        <label for="name">Name</label>
+        <input id="name" placeholder="Customer name" />
+      </div>
+
+      <div>
+        <label for="phone">Phone</label>
+        <input id="phone" placeholder="01XXXXXXXXX" />
+      </div>
+
+      <div class="full">
+        <label for="address">Address</label>
+        <input id="address" placeholder="House: 515, Road: 11, Block K, Basundhara R/A, Dhaka" />
+      </div>
+
+      <div class="full">
+        <label for="amount">Amount</label>
+        <input id="amount" placeholder="6585 tk" />
+      </div>
+
+      <div class="full">
+        <label for="books">Books (one per line)</label>
+        <textarea id="books" placeholder="Book 1&#10;Book 2&#10;Book 3"></textarea>
+        <div class="hint">Tip: Write each book on a new line. Empty lines will be ignored.</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button onclick="addOrder()">Add Card</button>
+      <!-- <button onclick="saveLocal()">Save as PDF</button> -->
+    </div>
+  </div>
+
+  <div id="pages"></div>
+
+  <script>
+    // Data model: array of orders
+    const orders = [];
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function buildAddress() {
+      return document.getElementById("address").value.trim();
+    }
+
+    function cardHTML(o) {
+      const booksHTML = (o.books && o.books.length)
+        ? `<div class="books">
+             <div class="row"><span class="label">Books-</span></div>
+             <ol>${o.books.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ol>
+           </div>`
+        : '';
+
+      return `
+        <div class="card">
+          <div class="row"><span class="strong">From</span> MKBookhousebd,</div>
+          <div class="row"><span class="strong">To</span>, ${escapeHtml(o.name)}</div>
+          <div class="row"><span class="label">Contact-</span><span class="strong">${escapeHtml(o.phone)}</span></div>
+          <div class="row"><span class="label">Address-</span>${escapeHtml(o.address)}</div>
+          ${o.amount ? `<div class="row"><span class="label">Amount-</span><span class="strong">${escapeHtml(o.amount)}</span></div>` : ''}
+          ${booksHTML}
+        </div>
+      `;
+    }
+
+    function createPage(pagesEl) {
+      const page = document.createElement('div');
+      page.className = 'page';
+
+      const content = document.createElement('div');
+      content.className = 'page-content';
+
+      const left = document.createElement('div');
+      left.className = 'column';
+
+      const right = document.createElement('div');
+      right.className = 'column';
+
+      content.append(left, right);
+      page.append(content);
+      pagesEl.append(page);
+
+      return { left, right };
+    }
+
+    function createCardElement(o) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = cardHTML(o).trim();
+      return wrapper.firstElementChild;
+    }
+
+    function tryPlace(col, cardEl) {
+      col.append(cardEl);
+      const fits = col.scrollHeight <= col.clientHeight;
+      if (!fits) col.removeChild(cardEl);
+      return fits;
+    }
+
+    function render() {
+      const pagesEl = document.getElementById('pages');
+      pagesEl.innerHTML = '';
+      if (!orders.length) return;
+
+      let { left, right } = createPage(pagesEl);
+      let currentCol = left;
+
+      orders.forEach(o => {
+        const cardEl = createCardElement(o);
+
+        if (tryPlace(currentCol, cardEl)) return;
+
+        if (currentCol === left) {
+          currentCol = right;
+          if (tryPlace(currentCol, cardEl)) return;
+        }
+
+        ({ left, right } = createPage(pagesEl));
+        currentCol = left;
+
+        if (!tryPlace(currentCol, cardEl)) {
+          currentCol.append(cardEl);
+        }
+      });
+    }
+
+    function addOrder() {
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const address = buildAddress();
+      const amount = document.getElementById("amount").value.trim();
+
+      const booksRaw = document.getElementById("books").value;
+      const books = booksRaw
+        .split("\n")
+        .map(b => b.trim())
+        .filter(Boolean);
+
+      if (!name || !phone || !address) {
+        alert("Please fill Name, Phone, and Address (at least one address field).");
+        return;
+      }
+
+      orders.push({ name, phone, address, amount, books });
+      render();
+
+      // Clear form
+      document.querySelectorAll(".form input, .form textarea").forEach(el => el.value = "");
+    }
+
+    function addSample() {
+      orders.push({
+        name: "Fawziya Osman",
+        phone: "01703586884",
+        address: "House: 515, Road: 11, Block K, Basundhara R/A",
+        amount: "6585 tk",
+        books: [
+          "Days at the Morisaki Bookshop",
+          "More Days at the Morisaki Bookshop",
+          "Before the Coffee Gets Cold",
+          "Tales from the Café"
+        ]
+      });
+
+      orders.push({
+        name: "Afifah Nawshin",
+        phone: "01798868367",
+        address: "House 21, Road 7, Dhanmondi, Dhaka",
+        amount: "1430 tk",
+        books: [
+          "the man made of smoke",
+          "the snowman",
+          "sharp objects",
+          "looking glass sound"
+        ]
+      });
+
+      render();
+    }
+
+    function clearAll() {
+      orders.length = 0;
+      render();
+      localStorage.removeItem("mk_orders");
+    }
+
+    function saveLocal() {
+      const element = document.getElementById('pages');
+      const opt = {
+        margin: 10,
+        filename: 'orders.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
+        pagebreak: { mode: ['css', 'legacy'] }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+
+    function loadLocal() {
+      const data = localStorage.getItem("mk_orders");
+      if (!data) {
+        alert("No saved data found.");
+        return;
+      }
+      try {
+        const parsed = JSON.parse(data);
+        orders.length = 0;
+        parsed.forEach(x => orders.push(x));
+        render();
+        alert("Loaded saved data.");
+      } catch {
+        alert("Saved data is corrupted.");
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
